@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Power, RotateCcw, Play, Square, CheckCircle2, Trophy, HelpCircle, X } from 'lucide-react';
+import LightRays from './components/LightRays';
 
 // --- 类型定义 ---
 type ParamType = 'linear' | 'log';
@@ -616,10 +617,28 @@ export default function App() {
   }
 
   return (
-    <div className="select-none min-h-screen bg-neutral-950 text-gray-200 font-sans p-6 flex flex-col items-center justify-center">
+    <div className="select-none min-h-screen bg-neutral-950 text-gray-200 font-sans p-6 flex flex-col items-center justify-center relative overflow-hidden">
+      {/* 背景光效 */}
+      <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 0 }} className="pointer-events-none opacity-40">
+       <LightRays
+    raysOrigin="top-center"
+    raysColor="#ffffff"
+    raysSpeed={0.6}
+    lightSpread={1.3}
+    rayLength={2.1}
+    pulsating={false}
+    fadeDistance={2.2}
+    saturation={1}
+    followMouse
+    mouseInfluence={0.1}
+    noiseAmount={0}
+    distortion={0}
+  /> 
+  </div>
+
       <TutorialModal isOpen={showTutorial} onClose={closeTutorial} />
       
-      <div className="mb-6 text-center space-y-2">
+      <div className="relative z-10 mb-6 text-center space-y-2">
         <h1 className="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-600">
           压缩盲听挑战
         </h1>
