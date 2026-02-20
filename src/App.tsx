@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Power, RotateCcw, Play, Square, CheckCircle2, Trophy } from 'lucide-react';
+import { Power, RotateCcw, Play, Square, CheckCircle2, Trophy, HelpCircle, X } from 'lucide-react';
 
 // --- 类型定义 ---
 type ParamType = 'linear' | 'log';
@@ -185,9 +185,49 @@ const Knob = ({ config, value, onChange, disabled }: KnobProps) => {
   );
 };
 
+// --- 引导弹窗组件 ---
+const TutorialModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  if (!isOpen) return null;
+  
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="bg-[#1a1c20] border border-orange-500/30 rounded-3xl p-8 max-w-md w-full shadow-[0_0_50px_rgba(249,115,22,0.2)] relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-red-600"></div>
+        
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+        >
+          <X size={24} />
+        </button>
+
+        <div className="flex flex-col items-center text-center space-y-6">
+          <div className="w-20 h-20 bg-orange-500/10 rounded-full flex items-center justify-center">
+            <HelpCircle size={48} className="text-orange-500" />
+          </div>
+          
+          <h2 className="text-2xl font-bold text-white">挑战说明</h2>
+          
+          <p className="text-gray-300 leading-relaxed text-lg">
+            点击开始播放后会播放压缩后的音频，你觉得他用了什么参数就在界面上调，越接近正确答案分数越高
+          </p>
+          
+          <button
+            onClick={onClose}
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-xl transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-orange-500/20"
+          >
+            知道了，开始挑战
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- 主应用组件 ---
 export default function App() {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const [isBypass, setIsBypass] = useState(false);
   const [gameState, setGameState] = useState<'playing' | 'revealed' | 'finished'>('playing');
   const [currentRound, setCurrentRound] = useState(1);
@@ -430,6 +470,18 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+    if (!hasSeenTutorial) {
+      setShowTutorial(true);
+    }
+  }, []);
+
+  const closeTutorial = () => {
+    setShowTutorial(false);
+    localStorage.setItem('hasSeenTutorial', 'true');
+  };
+
+  useEffect(() => {
     if (gameState === 'playing') {
       applyParamsToAudio(targetParams, isBypass);
     } else if (gameState === 'revealed') {
@@ -565,6 +617,7 @@ export default function App() {
 
   return (
     <div className="select-none min-h-screen bg-neutral-950 text-gray-200 font-sans p-6 flex flex-col items-center justify-center">
+      <TutorialModal isOpen={showTutorial} onClose={closeTutorial} />
       
       <div className="mb-6 text-center space-y-2">
         <h1 className="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-600">
