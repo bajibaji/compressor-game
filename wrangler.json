@@ -1,0 +1,22 @@
+{
+  "name": "compressor-game",
+  "compatibility_date": "2026-02-12",
+  
+  "assets": {
+    "directory": "./dist"
+  },
+  
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  
+  "build": {
+    "command": "npm run build"
+  },
+  
+  "vars": {
+    "NODE_ENV": "production"
+  }
+}
+ 
