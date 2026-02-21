@@ -210,7 +210,7 @@ const TutorialModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
           <h2 className="text-2xl font-bold text-white">挑战说明</h2>
           
           <p className="text-gray-300 leading-relaxed text-lg">
-            点击开始播放后会播放压缩后的音频，你觉得他用了什么参数就在界面上调，越接近正确答案分数越高
+            点击 开始播放 后会播放压缩后的音频，你觉得用了什么参数就在界面上调，越接近正确答案分数越高
           </p>
           
           <button
@@ -254,6 +254,7 @@ export default function App() {
   const dryGainRef = useRef<GainNode | null>(null);
   const wetGainRef = useRef<GainNode | null>(null);
   const makeupGainRef = useRef<GainNode | null>(null);
+  const autoGainWorkletRef = useRef<AudioWorkletNode | null>(null);
   
   const drumBufferRef = useRef<AudioBuffer | null>(null);
   const currentBufferRef = useRef<AudioBuffer | null>(null);
@@ -271,8 +272,9 @@ export default function App() {
       gain.connect(offlineCtx.destination);
       osc.frequency.setValueAtTime(150, time);
       osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
-      gain.gain.setValueAtTime(1, time);
-      gain.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+      // Target -6dBFS (approx 0.5 linear gain)
+      gain.gain.setValueAtTime(0.5, time);
+      gain.gain.exponentialRampToValueAtTime(0.005, time + 0.5);
       osc.start(time);
       osc.stop(time + 0.5);
     };
@@ -291,8 +293,9 @@ export default function App() {
       noise.connect(filter);
       filter.connect(gain);
       gain.connect(offlineCtx.destination);
-      gain.gain.setValueAtTime(loud ? 0.3 : 0.1, time);
-      gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+      // Adjusted for -6dB headroom mix
+      gain.gain.setValueAtTime(loud ? 0.15 : 0.05, time);
+      gain.gain.exponentialRampToValueAtTime(0.005, time + 0.1);
       noise.start(time);
     };
 
@@ -361,10 +364,11 @@ export default function App() {
           filter.frequency.setValueAtTime(filterStartFreq, pTime);
           filter.frequency.exponentialRampToValueAtTime(filterEndFreq, pTime + 0.3);
 
-          const velocity = (p % 2 === 0) ? 0.7 : 0.2; 
-          gain.gain.setValueAtTime(0.01, pTime);
+          // Target -6dBFS (approx 0.5) - adjusting velocities
+          const velocity = (p % 2 === 0) ? 0.35 : 0.1; 
+          gain.gain.setValueAtTime(0.005, pTime);
           gain.gain.linearRampToValueAtTime(velocity, pTime + 0.01); 
-          gain.gain.exponentialRampToValueAtTime(0.01, pTime + pluckLen - 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.005, pTime + pluckLen - 0.02);
 
           osc.start(pTime);
           osc.stop(pTime + pluckLen);
@@ -381,6 +385,21 @@ export default function App() {
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       const ctx = new AudioContextClass();
       audioCtxRef.current = ctx;
+
+      // 加载 AudioWorklet
+      try {
+        await ctx.audioWorklet.addModule('/auto-gain-processor.js');
+        // 创建 AutoGain Worklet Node
+        // numberOfInputs: 2 (Input 0: Compressed, Input 1: Original Reference)
+        // numberOfOutputs: 1 (Gain Adjusted Output)
+        autoGainWorkletRef.current = new AudioWorkletNode(ctx, 'auto-gain-processor', {
+          numberOfInputs: 2,
+          numberOfOutputs: 1,
+          outputChannelCount: [2] // Stereo Output
+        });
+      } catch (e) {
+        console.error("Failed to load AutoGain Worklet:", e);
+      }
       
       if (!drumBufferRef.current) {
         drumBufferRef.current = await generateTestDrumLoop(ctx);
@@ -397,7 +416,17 @@ export default function App() {
       wetGainRef.current = ctx.createGain();
       makeupGainRef.current = ctx.createGain();
 
-      compNodeRef.current.connect(makeupGainRef.current);
+      // 连接链条: 
+      // 这里的连接主要处理 Output 级。Input 级在 startCurrentSource 里动态连。
+      
+      // Worklet (Output) -> Makeup Gain -> Wet Gain
+      if (autoGainWorkletRef.current) {
+        autoGainWorkletRef.current.connect(makeupGainRef.current);
+      } else {
+        // Fallback if worklet fails
+        compNodeRef.current.connect(makeupGainRef.current);
+      }
+
       makeupGainRef.current.connect(wetGainRef.current);
       
       dryGainRef.current.connect(ctx.destination);
@@ -418,15 +447,26 @@ export default function App() {
 
   const startCurrentSource = () => {
     const ctx = audioCtxRef.current;
-    if (!ctx || !compNodeRef.current || !dryGainRef.current || !currentBufferRef.current) return;
+    if (!ctx || !compNodeRef.current || !dryGainRef.current || !currentBufferRef.current || !autoGainWorkletRef.current) return;
 
     const source = ctx.createBufferSource();
     source.buffer = currentBufferRef.current;
     source.loop = true;
     
-    source.connect(compNodeRef.current); 
+    // Path 1: Dry / Bypass Signal
     source.connect(dryGainRef.current);  
+
+    // Path 2: Auto Gain Processing Chain
+    // 2.1: Source -> Compressor
+    source.connect(compNodeRef.current);
     
+    // 2.2: Compressor -> Worklet Input 0 (Process Target)
+    compNodeRef.current.connect(autoGainWorkletRef.current, 0, 0);
+
+    // 2.3: Source -> Worklet Input 1 (Reference Target)
+    // IMPORTANT: connect(destination, outputIndex, inputIndex)
+    source.connect(autoGainWorkletRef.current, 0, 1);
+
     source.start();
     sourceNodeRef.current = source;
   };
@@ -454,16 +494,14 @@ export default function App() {
 
     compNodeRef.current.threshold.setTargetAtTime(params.threshold, t, 0.05);
     compNodeRef.current.ratio.setTargetAtTime(params.ratio, t, 0.05);
+    compNodeRef.current.knee.setTargetAtTime(30, t, 0.05);
     compNodeRef.current.attack.setTargetAtTime(params.attack / 1000, t, 0.05);
     compNodeRef.current.release.setTargetAtTime(params.release / 1000, t, 0.05);
 
-    const thresholdLin = Math.abs(params.threshold);
-    const reductionFactor = 1 - (1 / params.ratio);
-    
-    const makeupGainDB = thresholdLin * reductionFactor * 0.15; 
-    const makeupGainLinear = Math.pow(10, makeupGainDB / 20);
-    
-    makeupGainRef.current.gain.setTargetAtTime(makeupGainLinear, t, 0.1);
+    // With AutoGainWorklet, we rely on Real-Time RMS matching.
+    // The worklet continuously compares Input vs Output energy and adjusts gain.
+    // We set makeup gain to unity (1.0) as the base.
+    makeupGainRef.current.gain.setTargetAtTime(1.0, t, 0.1);
 
     dryGainRef.current.gain.setTargetAtTime(bypassState ? 1 : 0, t, 0.05);
     wetGainRef.current.gain.setTargetAtTime(bypassState ? 0 : 1, t, 0.05);
@@ -640,7 +678,7 @@ export default function App() {
       
       <div className="relative z-10 mb-6 text-center space-y-2">
         <h1 className="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-600">
-          压缩盲听挑战
+          VCA压缩盲听挑战1.0
         </h1>
         <div className="text-gray-500 font-mono text-sm flex items-center justify-center gap-4">
           <span>CODING BY DANJUAN</span>
