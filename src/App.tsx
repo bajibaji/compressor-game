@@ -656,11 +656,12 @@ export default function App() {
 
   if (gameState === 'finished') {
     const averageScore = Math.round(totalScore / MAX_ROUNDS);
-    let rank = '木耳';
-    if (averageScore > 90) rank = '混音大师';
-    else if (averageScore > 75) rank = '高级混音师';
-    else if (averageScore > 60) rank = '外行爱好者';
-    
+    let rank = '你会混音吗？';
+    if (averageScore > 90) rank = '真正的大师';
+    else if (averageScore > 80) rank = '高级混音师';
+    else if (averageScore > 70) rank = '会混音，但只会一点点';
+    else if (averageScore > 60) rank = '勉勉强强';
+    else if (averageScore > 50) rank = '你是外行吧';
     return (
       <div className="select-none min-h-screen bg-neutral-950 text-gray-200 font-sans p-6 flex flex-col items-center justify-center">
         <div className="bg-[#1a1c20] p-12 rounded-3xl shadow-2xl border border-gray-800 w-full max-w-2xl text-center">
