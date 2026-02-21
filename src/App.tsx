@@ -715,7 +715,7 @@ export default function App() {
       
       <div className="relative z-10 mb-2 sm:mb-6 text-center space-y-0.5 sm:space-y-2">
         <h1 className="text-2xl sm:text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-600">
-          VCA压缩挑战
+          VCA压缩盲听挑战1.0
         </h1>
         <div className="text-gray-500 font-mono text-[9px] sm:text-sm flex items-center justify-center gap-1 sm:gap-4">
           <span className="hidden sm:inline">CODING BY DANJUAN</span>
@@ -737,8 +737,8 @@ export default function App() {
               className={`flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-6 py-1.5 sm:py-3 rounded font-bold text-xs sm:text-base transition-all ${isPlaying ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-gray-800 hover:bg-gray-700 text-gray-300'}`}
             >
               {isPlaying ? <Square size={14} fill="currentColor"/> : <Play size={14} fill="currentColor"/>}
-              <span className="hidden sm:inline">{isPlaying ? 'STOP' : 'PLAY'}</span>
-              <span className="sm:hidden">{isPlaying ? 'S' : 'P'}</span>
+              <span className="hidden sm:inline">{isPlaying ? '暂停' : '开始播放'}</span>
+              <span className="sm:hidden">{isPlaying ? '暂停' : '开始播放'}</span>
             </button>
 
             <button 
@@ -747,13 +747,13 @@ export default function App() {
             >
               <Power size={14} className={isBypass ? 'text-red-500' : 'text-gray-500'} />
               <span className="hidden sm:inline">BYPASS</span>
-              <span className="sm:hidden">B</span>
+              <span className="sm:hidden">BYPASS</span>
               <div className={`absolute top-0.5 right-0.5 w-1 h-1 rounded-full ${isBypass ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,1)]' : 'bg-gray-900 shadow-inner'}`}></div>
             </button>
           </div>
 
           <div className="flex flex-row sm:flex-col justify-between sm:items-end px-0.5 sm:px-0">
-            <span className="text-gray-500 font-mono text-[8px] sm:text-xs mb-0 sm:mb-1 uppercase tracking-widest">Target</span>
+            <span className="text-gray-500 font-mono text-[8px] sm:text-xs mb-0 sm:mb-1 uppercase tracking-widest">猜猜压缩用了什么参数</span>
             {gameState === 'playing' ? (
               <div className="text-orange-400 font-mono text-[9px] sm:text-sm animate-pulse flex items-center gap-1 sm:gap-2">
                 <div className="w-1 h-1 rounded-full bg-orange-500"></div>
@@ -763,7 +763,7 @@ export default function App() {
             ) : (
               <div className="text-green-400 font-mono text-[9px] sm:text-sm flex items-center gap-1">
                 <CheckCircle2 size={12} />
-                <span className="hidden sm:inline">REVEALED</span>
+                <span className="hidden sm:inline">OK</span>
                 <span className="sm:hidden">OK</span>
               </div>
             )}
