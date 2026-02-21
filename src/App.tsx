@@ -141,6 +141,7 @@ const Knob = ({ config, value, onChange, disabled }: KnobProps) => {
   const onMouseUp = () => handleEnd();
   
   const onTouchMove = (e: TouchEvent) => {
+    e.preventDefault();
     if (e.touches.length > 0) handleMove(e.touches[0].clientY);
   };
   const onTouchEnd = () => handleEnd();
@@ -167,11 +168,11 @@ const Knob = ({ config, value, onChange, disabled }: KnobProps) => {
   const dashOffset = arcLength - (scale * arcLength);
 
   return (
-    <div className="flex flex-col items-center justify-center m-1 sm:m-2 mt-4 sm:mt-6">
-      <div className="relative w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-center">
+    <div className="flex flex-col items-center justify-center m-0.5 sm:m-2 mt-2 sm:mt-6">
+      <div className="relative w-20 h-20 sm:w-32 sm:h-32 flex items-center justify-center">
         {/* 增加触摸区域增强层 */}
         <div 
-          className="absolute inset-0 z-20" 
+          className="absolute inset-0 z-20 cursor-ns-resize" 
           onMouseDown={handleMouseDown}
           onTouchStart={handleTouchStart}
         />
@@ -191,9 +192,9 @@ const Knob = ({ config, value, onChange, disabled }: KnobProps) => {
           const deg = -135 + tickScale * 270;
           return (
             <div key={tick.value} className="absolute inset-0 pointer-events-none" style={{ transform: `rotate(${deg}deg)` }}>
-              <div className="absolute top-[8px] sm:top-[10px] left-1/2 -translate-x-1/2 w-[2px] sm:w-[2.5px] h-[4px] sm:h-[6px] bg-gray-400 rounded-full"></div>
-              <div className="absolute top-[-8px] sm:top-[-10px] left-1/2 -translate-x-1/2 flex justify-center items-center">
-                <div className="text-[10px] sm:text-[12px] font-bold text-gray-400 sm:text-gray-200 tracking-tighter drop-shadow-md" style={{ transform: `rotate(${-deg}deg)` }}>
+              <div className="absolute top-[6px] sm:top-[10px] left-1/2 -translate-x-1/2 w-[1.5px] sm:w-[2.5px] h-[3px] sm:h-[6px] bg-gray-400 rounded-full"></div>
+              <div className="absolute top-[-6px] sm:top-[-10px] left-1/2 -translate-x-1/2 flex justify-center items-center">
+                <div className="text-[8px] sm:text-[12px] font-bold text-gray-500 sm:text-gray-200 tracking-tighter drop-shadow-md" style={{ transform: `rotate(${-deg}deg)` }}>
                   {tick.label}
                 </div>
               </div>
@@ -202,20 +203,20 @@ const Knob = ({ config, value, onChange, disabled }: KnobProps) => {
         })}
 
         <div 
-          className={`relative w-16 h-16 sm:w-20 sm:h-20 z-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 shadow-[5px_5px_15px_rgba(0,0,0,0.6),-2px_-2px_10px_rgba(255,255,255,0.1)] flex items-center justify-center border-4 border-gray-800 transition-all ${disabled ? 'opacity-50 pointer-events-none' : ''} ${isHovered ? 'scale-110 border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.4)]' : ''}`}
+          className={`relative w-14 h-14 sm:w-20 sm:h-20 z-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 shadow-[5px_5px_15px_rgba(0,0,0,0.6),-2px_-2px_10px_rgba(255,255,255,0.1)] flex items-center justify-center border-3 sm:border-4 border-gray-800 transition-all ${disabled ? 'opacity-50 pointer-events-none' : ''} ${isHovered ? 'scale-110 border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.4)]' : ''}`}
           ref={knobRef}
         >
           <div className="absolute w-full h-full rounded-full" style={{ transform: `rotate(${rotation}deg)` }}>
-            <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1.5 h-3 sm:h-4 bg-cyan-400 rounded-full shadow-[0_0_5px_rgba(6,182,212,0.8)]"></div>
+            <div className="absolute top-0.5 sm:top-1 left-1/2 -translate-x-1/2 w-1 sm:w-1.5 h-2 sm:h-4 bg-cyan-400 rounded-full shadow-[0_0_5px_rgba(6,182,212,0.8)]"></div>
           </div>
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-gray-600 to-gray-500 shadow-inner"></div>
+          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-gray-600 to-gray-500 shadow-inner"></div>
         </div>
       </div>
 
-      <div className="mt-2 sm:mt-4 text-center">
-        <div className="text-gray-400 text-[10px] sm:text-xs font-bold uppercase tracking-wider">{config.label}</div>
-        <div className={`select-none transition-all duration-200 font-mono text-sm sm:text-lg bg-gray-900 px-2 sm:px-3 py-0.5 sm:py-1 rounded border mt-1 shadow-inner ${isHovered ? 'text-white border-cyan-400 bg-cyan-900/30 scale-110' : 'text-cyan-400 border-gray-700'}`}>
-          {displayValue} <span className="select-none text-[10px] sm:text-xs text-gray-500">{config.unit}</span>
+      <div className="mt-1 sm:mt-4 text-center">
+        <div className="text-gray-400 text-[8px] sm:text-xs font-bold uppercase tracking-wider">{config.label}</div>
+        <div className={`select-none transition-all duration-200 font-mono text-xs sm:text-lg bg-gray-900 px-1.5 sm:px-3 py-0.5 sm:py-1 rounded border mt-0.5 sm:mt-1 shadow-inner ${isHovered ? 'text-white border-cyan-400 bg-cyan-900/30 scale-110' : 'text-cyan-400 border-gray-700'}`}>
+          {displayValue} <span className="select-none text-[7px] sm:text-xs text-gray-500">{config.unit}</span>
         </div>
       </div>
     </div>
@@ -712,61 +713,64 @@ export default function App() {
 
       <TutorialModal isOpen={showTutorial} onClose={closeTutorial} />
       
-      <div className="relative z-10 mb-4 sm:mb-6 text-center space-y-1 sm:space-y-2">
-        <h1 className="text-3xl sm:text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-600">
-          VCA压缩盲听挑战1.0
+      <div className="relative z-10 mb-2 sm:mb-6 text-center space-y-0.5 sm:space-y-2">
+        <h1 className="text-2xl sm:text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-600">
+          VCA压缩挑战
         </h1>
-        <div className="text-gray-500 font-mono text-[10px] sm:text-sm flex items-center justify-center gap-2 sm:gap-4">
+        <div className="text-gray-500 font-mono text-[9px] sm:text-sm flex items-center justify-center gap-1 sm:gap-4">
           <span className="hidden sm:inline">CODING BY DANJUAN</span>
-          <span className="text-orange-400 font-bold bg-orange-900/30 px-2 py-0.5 rounded">Round {currentRound} / {MAX_ROUNDS}</span>
+          <span className="text-orange-400 font-bold bg-orange-900/30 px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-sm">Round {currentRound} / {MAX_ROUNDS}</span>
         </div>
       </div>
 
-      <div className="bg-[#1a1c20] p-4 sm:p-8 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.1)] border border-gray-800 w-full max-w-4xl relative overflow-hidden">
+      <div className="bg-[#1a1c20] p-2 sm:p-8 rounded-xl sm:rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.1)] border border-gray-800 w-full max-w-4xl relative overflow-hidden">
         
         <div className="hidden sm:block absolute top-4 left-4 w-3 h-3 rounded-full bg-gray-800 shadow-inner border border-gray-900"></div>
         <div className="hidden sm:block absolute top-4 right-4 w-3 h-3 rounded-full bg-gray-800 shadow-inner border border-gray-900"></div>
         <div className="hidden sm:block absolute bottom-4 left-4 w-3 h-3 rounded-full bg-gray-800 shadow-inner border border-gray-900"></div>
         <div className="hidden sm:block absolute bottom-4 right-4 w-3 h-3 rounded-full bg-gray-800 shadow-inner border border-gray-900"></div>
 
-        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-10 bg-black/40 p-3 sm:p-4 rounded-xl border border-gray-800/50">
-          <div className="flex gap-2 sm:gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 sm:gap-4 mb-3 sm:mb-10 bg-black/40 p-2 sm:p-4 rounded-lg sm:rounded-xl border border-gray-800/50">
+          <div className="flex gap-1.5 sm:gap-4">
             <button 
               onClick={togglePlay}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-bold text-sm sm:text-base transition-all ${isPlaying ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-gray-800 hover:bg-gray-700 text-gray-300'}`}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-6 py-1.5 sm:py-3 rounded font-bold text-xs sm:text-base transition-all ${isPlaying ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-gray-800 hover:bg-gray-700 text-gray-300'}`}
             >
-              {isPlaying ? <Square size={16} fill="currentColor"/> : <Play size={16} fill="currentColor"/>}
-              {isPlaying ? 'STOP' : 'PLAY'}
+              {isPlaying ? <Square size={14} fill="currentColor"/> : <Play size={14} fill="currentColor"/>}
+              <span className="hidden sm:inline">{isPlaying ? 'STOP' : 'PLAY'}</span>
+              <span className="sm:hidden">{isPlaying ? 'S' : 'P'}</span>
             </button>
 
             <button 
               onClick={() => setIsBypass(!isBypass)}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-bold text-sm sm:text-base bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition-all relative"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-6 py-1.5 sm:py-3 rounded font-bold text-xs sm:text-base bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition-all relative"
             >
-              <Power size={16} className={isBypass ? 'text-red-500' : 'text-gray-500'} />
-              BYPASS
-              <div className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-full ${isBypass ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,1)]' : 'bg-gray-900 shadow-inner'}`}></div>
+              <Power size={14} className={isBypass ? 'text-red-500' : 'text-gray-500'} />
+              <span className="hidden sm:inline">BYPASS</span>
+              <span className="sm:hidden">B</span>
+              <div className={`absolute top-0.5 right-0.5 w-1 h-1 rounded-full ${isBypass ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,1)]' : 'bg-gray-900 shadow-inner'}`}></div>
             </button>
           </div>
 
-          <div className="flex flex-row sm:flex-col justify-between sm:items-end px-1 sm:px-0">
-            <span className="text-gray-500 font-mono text-[10px] sm:text-xs mb-0 sm:mb-1 uppercase tracking-widest">猜猜压缩用了什么参数</span>
+          <div className="flex flex-row sm:flex-col justify-between sm:items-end px-0.5 sm:px-0">
+            <span className="text-gray-500 font-mono text-[8px] sm:text-xs mb-0 sm:mb-1 uppercase tracking-widest">Target</span>
             {gameState === 'playing' ? (
-              <div className="text-orange-400 font-mono text-[11px] sm:text-sm animate-pulse flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-orange-500"></div>
+              <div className="text-orange-400 font-mono text-[9px] sm:text-sm animate-pulse flex items-center gap-1 sm:gap-2">
+                <div className="w-1 h-1 rounded-full bg-orange-500"></div>
                 <span className="hidden sm:inline">HEARING TARGET</span>
-                <span className="sm:hidden">HEARING</span>
+                <span className="sm:hidden">HEAR</span>
               </div>
             ) : (
-              <div className="text-green-400 font-mono text-[11px] sm:text-sm flex items-center gap-2">
-                <CheckCircle2 size={14} />
-                REVEALED
+              <div className="text-green-400 font-mono text-[9px] sm:text-sm flex items-center gap-1">
+                <CheckCircle2 size={12} />
+                <span className="hidden sm:inline">REVEALED</span>
+                <span className="sm:hidden">OK</span>
               </div>
             )}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-8 mb-6 sm:mb-10">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-1 sm:gap-8 mb-3 sm:mb-10">
           <Knob config={PARAMS_CONFIG.threshold} value={gameState === 'playing' ? userParams.threshold : targetParams.threshold} onChange={(v: number) => setUserParams(p => ({...p, threshold: v}))} disabled={gameState === 'revealed'} />
           <Knob config={PARAMS_CONFIG.ratio} value={gameState === 'playing' ? userParams.ratio : targetParams.ratio} onChange={(v: number) => setUserParams(p => ({...p, ratio: v}))} disabled={gameState === 'revealed'} />
           <Knob config={PARAMS_CONFIG.attack} value={gameState === 'playing' ? userParams.attack : targetParams.attack} onChange={(v: number) => setUserParams(p => ({...p, attack: v}))} disabled={gameState === 'revealed'} />
@@ -774,48 +778,48 @@ export default function App() {
         </div>
 
         {gameState === 'revealed' && score !== null && (
-          <div className="mb-6 sm:mb-10 bg-gray-900/80 border border-orange-500/30 p-4 sm:p-6 rounded-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
+          <div className="mb-3 sm:mb-10 bg-gray-900/80 border border-orange-500/30 p-2 sm:p-6 rounded-lg sm:rounded-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-2 sm:gap-6">
               <div className="text-center md:text-left">
-                <div className="text-gray-400 uppercase tracking-widest text-xs sm:text-sm mb-1 sm:mb-2">Round {currentRound} Score</div>
-                <div className="text-5xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-orange-300 to-orange-600 drop-shadow-lg">
-                  {score} <span className="text-xl sm:text-2xl text-gray-600">/100</span>
+                <div className="text-gray-400 uppercase tracking-widest text-[9px] sm:text-sm mb-0.5 sm:mb-2">Round {currentRound} Score</div>
+                <div className="text-4xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-orange-300 to-orange-600 drop-shadow-lg">
+                  {score} <span className="text-sm sm:text-2xl text-gray-600">/100</span>
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-x-4 sm:gap-x-8 gap-y-2 sm:gap-y-3 font-mono text-xs sm:text-sm flex-grow bg-black/50 p-3 sm:p-4 rounded-lg w-full md:w-auto">
+              <div className="grid grid-cols-2 gap-x-2 sm:gap-x-8 gap-y-1 sm:gap-y-3 font-mono text-[9px] sm:text-sm flex-grow bg-black/50 p-2 sm:p-4 rounded w-full md:w-auto">
                 {Object.keys(scoreDetails).map(key => (
-                  <div key={key} className="flex justify-between border-b border-gray-800 pb-1">
-                    <span className="text-gray-500 capitalize">{key}</span>
+                  <div key={key} className="flex justify-between border-b border-gray-800 pb-0.5 sm:pb-1">
+                    <span className="text-gray-500 capitalize text-[8px] sm:text-sm">{key}</span>
                     <span className={scoreDetails[key] > 80 ? 'text-green-400' : scoreDetails[key] > 50 ? 'text-yellow-400' : 'text-red-400'}>
-                      {scoreDetails[key]} pts
+                      {scoreDetails[key]} <span className="hidden sm:inline">pts</span>
                     </span>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="mt-3 sm:mt-4 text-center text-xs text-gray-500">
+            <div className="mt-2 sm:mt-4 text-center text-[8px] sm:text-xs text-gray-500">
               总分: {totalScore}
             </div>
           </div>
         )}
 
-        <div className="flex justify-center border-t border-gray-800 pt-6 sm:pt-8">
+        <div className="flex justify-center border-t border-gray-800 pt-3 sm:pt-8">
           {gameState === 'playing' ? (
             <button 
               onClick={submitGuess}
-              className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold text-base sm:text-xl px-8 sm:px-12 py-3 sm:py-4 rounded-full shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
+              className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold text-sm sm:text-xl px-6 sm:px-12 py-2 sm:py-4 rounded-full shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all hover:scale-105 active:scale-95 flex items-center gap-2 sm:gap-3"
             >
-              <CheckCircle2 size={20} />
+              <CheckCircle2 size={16} />
               <span className="hidden sm:inline">提交</span>
               <span className="sm:hidden">提交</span>
             </button>
           ) : (
             <button 
               onClick={nextRound}
-              className="bg-gray-700 hover:bg-gray-600 text-white font-bold text-base sm:text-xl px-8 sm:px-12 py-3 sm:py-4 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
+              className="bg-gray-700 hover:bg-gray-600 text-white font-bold text-sm sm:text-xl px-6 sm:px-12 py-2 sm:py-4 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-2 sm:gap-3"
             >
-              {currentRound >= MAX_ROUNDS ? 'FINISH' : <><RotateCcw size={20} /> <span className="hidden sm:inline">下一个</span></>}
+              {currentRound >= MAX_ROUNDS ? 'FINISH' : <><RotateCcw size={16} /> <span className="hidden sm:inline">下一个</span><span className="sm:hidden">下一个</span></>}
             </button>
           )}
         </div>
