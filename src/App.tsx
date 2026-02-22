@@ -542,15 +542,11 @@ export default function App() {
     // makeup gain 保持 unity，auto gain worklet 负责响度匹配
     makeupGainRef.current.gain.setTargetAtTime(1.0, t, 0.1);
 
-    // 切换 bypass 时通知 auto gain worklet 重置增益，避免跳变
-    if (autoGainWorkletRef.current) {
-      autoGainWorkletRef.current.port.postMessage({ type: 'resetGain' });
-    }
-
     dryGainRef.current.gain.setTargetAtTime(bypassState ? 1 : 0, t, 0.05);
     wetGainRef.current.gain.setTargetAtTime(bypassState ? 0 : 1, t, 0.05);
 
   }, []);
+
 
   // AudioContext 生命周期管理：组件卸载时清理资源
   useEffect(() => {
