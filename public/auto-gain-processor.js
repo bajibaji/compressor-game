@@ -5,15 +5,29 @@ class AutoGainProcessor extends AudioWorkletProcessor {
     this.sumRef = 0;
     this.currentGain = 1.0;
     
-    // 增加积分时间 (约 400ms)，让响度评估更稳定
-    this.smoothingFactor = 0.9998;
+    // 增加积分时间，让响度评估更稳定
+    // tau = -1 / (fs * ln(alpha))
+    // alpha = 0.99995 (约 416ms @ 48kHz)，足够长以平滑鼓循环的瞬态
+    this.smoothingFactor = 0.99995;
     
     // 增益调整平滑度 (极其缓慢，防止引入任何听得见的泵吸感)
-    this.gainSmoothing = 0.99992;
+    // alpha = 0.99998 (约 1040ms @ 48kHz)
+    this.gainSmoothing = 0.99998;
 
-    // 心理声学补偿: 0.8 约为 -2dB
-    // 强制将压缩后的响度设定在原声的 80%，以抵消密度感带来的响度提升。
-    this.perceptualOffset = 0.8; 
+    // 响度匹配比例，1.0 = 完全匹配原始响度
+    // 之前用 0.8 做心理声学补偿，但会导致明显的音量差异
+    this.perceptualOffset = 1.0;
+    
+    // 强制重置增益的标记，用于切换时快速收敛
+    this.forceReset = false;
+    
+    this.port.onmessage = (event) => {
+      if (event.data.type === 'setOffset') {
+        this.perceptualOffset = event.data.value;
+      } else if (event.data.type === 'resetGain') {
+        this.forceReset = true;
+      }
+    };
   }
 
   process(inputs, outputs) {
@@ -48,11 +62,20 @@ class AutoGainProcessor extends AudioWorkletProcessor {
         targetGain = Math.sqrt(this.sumRef / this.sumComp) * this.perceptualOffset;
       }
 
-      // 限制增益范围，防止意外
-      targetGain = Math.max(0.1, Math.min(targetGain, 4.0));
+      // 限制增益范围，扩大到可以补偿极端的压缩 (最大 10 倍, 约 +20dB)
+      targetGain = Math.max(0.01, Math.min(targetGain, 10.0));
 
-      // 平滑过度到目标增益
-      this.currentGain = this.currentGain * this.gainSmoothing + targetGain * (1 - this.gainSmoothing);
+      if (this.forceReset) {
+        this.currentGain = targetGain;
+        // 确保不会一直重置，只在接收到消息时触发，并且通过平滑过渡快速贴近
+        this.forceReset = false;
+        // 加速收敛能量
+        this.sumComp = powerComp;
+        this.sumRef = powerRef;
+      } else {
+        // 平滑过度到目标增益
+        this.currentGain = this.currentGain * this.gainSmoothing + targetGain * (1 - this.gainSmoothing);
+      }
 
       for (let c = 0; c < channelCount; c++) {
         output[c][i] = inputComp[c][i] * this.currentGain;

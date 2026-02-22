@@ -287,7 +287,7 @@ export default function App() {
   // 音频相关的 Refs 添加类型定义
   const audioCtxRef = useRef<AudioContext | null>(null);
   const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
-  const compNodeRef = useRef<DynamicsCompressorNode | null>(null);
+  const compNodeRef = useRef<AudioWorkletNode | null>(null);
   const dryGainRef = useRef<GainNode | null>(null);
   const wetGainRef = useRef<GainNode | null>(null);
   const makeupGainRef = useRef<GainNode | null>(null);
@@ -426,6 +426,7 @@ export default function App() {
       // 加载 AudioWorklet
       try {
         await ctx.audioWorklet.addModule('/auto-gain-processor.js');
+        await ctx.audioWorklet.addModule('/hard-knee-compressor.js');
         // 创建 AutoGain Worklet Node
         // numberOfInputs: 2 (Input 0: Compressed, Input 1: Original Reference)
         // numberOfOutputs: 1 (Gain Adjusted Output)
@@ -434,8 +435,11 @@ export default function App() {
           numberOfOutputs: 1,
           outputChannelCount: [2] // Stereo Output
         });
+        compNodeRef.current = new AudioWorkletNode(ctx, 'hard-knee-compressor');
       } catch (e) {
-        console.error("Failed to load AutoGain Worklet:", e);
+        console.error("Failed to load AudioWorklets:", e);
+        // 回退逻辑不再适用，我们强依赖 Worklet
+        return;
       }
       
       if (!drumBufferRef.current) {
@@ -448,21 +452,15 @@ export default function App() {
         currentBufferRef.current = drumBufferRef.current;
       }
 
-      compNodeRef.current = ctx.createDynamicsCompressor();
       dryGainRef.current = ctx.createGain();
       wetGainRef.current = ctx.createGain();
       makeupGainRef.current = ctx.createGain();
 
-      // 连接链条: 
+      // 连接链条:
       // 这里的连接主要处理 Output 级。Input 级在 startCurrentSource 里动态连。
       
       // Worklet (Output) -> Makeup Gain -> Wet Gain
-      if (autoGainWorkletRef.current) {
-        autoGainWorkletRef.current.connect(makeupGainRef.current);
-      } else {
-        // Fallback if worklet fails
-        compNodeRef.current.connect(makeupGainRef.current);
-      }
+      autoGainWorkletRef.current.connect(makeupGainRef.current);
 
       makeupGainRef.current.connect(wetGainRef.current);
       
@@ -529,20 +527,61 @@ export default function App() {
     if (!isEngineReady.current || !compNodeRef.current || !audioCtxRef.current || !makeupGainRef.current || !dryGainRef.current || !wetGainRef.current) return;
     const t = audioCtxRef.current.currentTime;
 
-    compNodeRef.current.threshold.setTargetAtTime(params.threshold, t, 0.05);
-    compNodeRef.current.ratio.setTargetAtTime(params.ratio, t, 0.05);
-    compNodeRef.current.knee.setTargetAtTime(30, t, 0.05);
-    compNodeRef.current.attack.setTargetAtTime(params.attack / 1000, t, 0.05);
-    compNodeRef.current.release.setTargetAtTime(params.release / 1000, t, 0.05);
+    // 使用 AudioWorkletNode 的 AudioParam 接口设置 hard knee 压缩器参数
+    const compParams = compNodeRef.current.parameters;
+    const thresholdParam = compParams.get('threshold');
+    const ratioParam = compParams.get('ratio');
+    const attackParam = compParams.get('attack');
+    const releaseParam = compParams.get('release');
 
-    // With AutoGainWorklet, we rely on Real-Time RMS matching.
-    // The worklet continuously compares Input vs Output energy and adjusts gain.
-    // We set makeup gain to unity (1.0) as the base.
+    if (thresholdParam) thresholdParam.setTargetAtTime(params.threshold, t, 0.05);
+    if (ratioParam) ratioParam.setTargetAtTime(params.ratio, t, 0.05);
+    if (attackParam) attackParam.setTargetAtTime(params.attack / 1000, t, 0.05);
+    if (releaseParam) releaseParam.setTargetAtTime(params.release / 1000, t, 0.05);
+
+    // makeup gain 保持 unity，auto gain worklet 负责响度匹配
     makeupGainRef.current.gain.setTargetAtTime(1.0, t, 0.1);
+
+    // 切换 bypass 时通知 auto gain worklet 重置增益，避免跳变
+    if (autoGainWorkletRef.current) {
+      autoGainWorkletRef.current.port.postMessage({ type: 'resetGain' });
+    }
 
     dryGainRef.current.gain.setTargetAtTime(bypassState ? 1 : 0, t, 0.05);
     wetGainRef.current.gain.setTargetAtTime(bypassState ? 0 : 1, t, 0.05);
 
+  }, []);
+
+  // AudioContext 生命周期管理：组件卸载时清理资源
+  useEffect(() => {
+    return () => {
+      stopCurrentSource();
+      if (autoGainWorkletRef.current) {
+        autoGainWorkletRef.current.disconnect();
+        autoGainWorkletRef.current = null;
+      }
+      if (compNodeRef.current) {
+        compNodeRef.current.disconnect();
+        compNodeRef.current = null;
+      }
+      if (makeupGainRef.current) {
+        makeupGainRef.current.disconnect();
+        makeupGainRef.current = null;
+      }
+      if (dryGainRef.current) {
+        dryGainRef.current.disconnect();
+        dryGainRef.current = null;
+      }
+      if (wetGainRef.current) {
+        wetGainRef.current.disconnect();
+        wetGainRef.current = null;
+      }
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close();
+        audioCtxRef.current = null;
+      }
+      isEngineReady.current = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -567,8 +606,8 @@ export default function App() {
 
   const generateNewRoundParams = () => {
     setTargetParams({
-      threshold: -10 - Math.random() * 40,
-      ratio: 2 + Math.random() * 10,       
+      threshold: PARAMS_CONFIG.threshold.min + Math.random() * (PARAMS_CONFIG.threshold.max - PARAMS_CONFIG.threshold.min),
+      ratio: reverseLogMap(Math.random(), PARAMS_CONFIG.ratio.min, PARAMS_CONFIG.ratio.max),
       attack: reverseLogMap(Math.random(), PARAMS_CONFIG.attack.min, PARAMS_CONFIG.attack.max),
       release: reverseLogMap(Math.random(), PARAMS_CONFIG.release.min, PARAMS_CONFIG.release.max)
     });
@@ -641,7 +680,7 @@ export default function App() {
     const sAttack = calcScore(userParams.attack, targetParams.attack, PARAMS_CONFIG.attack.min, PARAMS_CONFIG.attack.max, PARAMS_CONFIG.attack.type);
     const sRelease = calcScore(userParams.release, targetParams.release, PARAMS_CONFIG.release.min, PARAMS_CONFIG.release.max, PARAMS_CONFIG.release.type);
 
-    const roundScore = Math.round((sThresh * 0.35 + sRatio * 0.35 + sAttack * 0.15 + sRelease * 0.15));
+    const roundScore = Math.round((sThresh * 0.30 + sRatio * 0.10 + sAttack * 0.30 + sRelease * 0.30));
 
     setScoreDetails({
       threshold: Math.round(sThresh),
@@ -716,7 +755,7 @@ export default function App() {
       
       <div className="relative z-10 mb-2 sm:mb-6 text-center space-y-0.5 sm:space-y-2">
         <h1 className="text-2xl sm:text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-600">
-          VCA压缩盲听挑战1.0
+          压缩盲听挑战1.1
         </h1>
         <div className="text-gray-500 font-mono text-[9px] sm:text-sm flex items-center justify-center gap-1 sm:gap-4">
           <span className="hidden sm:inline">CODING BY DANJUAN</span>
